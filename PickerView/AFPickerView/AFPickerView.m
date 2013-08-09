@@ -272,7 +272,7 @@
 				label = [[UILabel alloc] initWithFrame:CGRectMake(_rowIndent, 0, self.frame.size.width - _rowIndent, 39.0)];
                 label.backgroundColor = [UIColor clearColor];
                 label.font = self.rowFont;
-                label.textColor = RGBACOLOR(0.0, 0.0, 0.0, 0.75);
+                label.textColor = [UIColor colorWithRed:0.0/255.0 green:0.0/255.0 blue:0.0/255.0 alpha:0.75];
             }
             
             [self configureView:label atIndex:index];
