@@ -7,6 +7,7 @@
 //
 
 #import "AFPickerView.h"
+#include <Quartzcore/Quartzcore.h>
 
 @implementation AFPickerView
 
@@ -17,7 +18,8 @@
 @synthesize selectedRow = currentRow;
 @synthesize rowFont = _rowFont;
 @synthesize rowIndent = _rowIndent;
-
+@synthesize rowHeight = _rowHeight;
+@synthesize rowFontColor = _rowFontColor;
 
 
 
@@ -29,7 +31,7 @@
         return;
     
     currentRow = selectedRow;
-    [contentView setContentOffset:CGPointMake(0.0, 39.0 * currentRow) animated:NO];
+    [contentView setContentOffset:CGPointMake(0.0, _rowHeight * currentRow) animated:NO];
 }
 
 
@@ -40,11 +42,6 @@
     _rowFont = rowFont;
     
     for (UILabel *aLabel in visibleViews) 
-    {
-        aLabel.font = _rowFont;
-    }
-    
-    for (UILabel *aLabel in recycledViews) 
     {
         aLabel.font = _rowFont;
     }
@@ -64,14 +61,6 @@
         frame.size.width = self.frame.size.width - _rowIndent;
         aLabel.frame = frame;
     }
-    
-    for (UILabel *aLabel in recycledViews) 
-    {
-        CGRect frame = aLabel.frame;
-        frame.origin.x = _rowIndent;
-        frame.size.width = self.frame.size.width - _rowIndent;
-        aLabel.frame = frame;
-    }
 }
 
 
@@ -79,7 +68,7 @@
 
 #pragma mark - Initialization
 
-- (id)initWithFrame:(CGRect)frame
+- (id)initWithFrame:(CGRect)frame backgroundImage:(UIImage *) backgroundImage pickerShadowsImage:(UIImage *) pickerShadows
 {
     self = [super initWithFrame:frame];
     if (self) 
@@ -88,8 +77,11 @@
         [self setup];
         
         // backgound
-        UIImageView *bacground = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"pickerBackground.png"]];
-        [self addSubview:bacground];
+        if (backgroundImage) {
+            UIImageView *background = [[UIImageView alloc] initWithImage:backgroundImage];
+            background.frame = CGRectMake(0, (self.frame.size.height - backgroundImage.size.height)/2, backgroundImage.size.width, backgroundImage.size.height);
+            [self addSubview:background];
+        }
         
         // content
         contentView = [[UIScrollView alloc] initWithFrame:CGRectMake(0.0, 0.0, frame.size.width, frame.size.height)];
@@ -103,14 +95,10 @@
         
         
         // shadows
-        UIImageView *shadows = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"pickerShadows.png"]];
+        if (pickerShadows) {
+        UIImageView *shadows = [[UIImageView alloc] initWithImage:pickerShadows];
         [self addSubview:shadows];
-        
-        // glass
-        UIImage *glassImage = [UIImage imageNamed:@"pickerGlass.png"];
-        glassImageView = [[UIImageView alloc] initWithFrame:CGRectMake(0.0, 76.0, glassImage.size.width, glassImage.size.height)];
-        glassImageView.image = glassImage;
-        [self addSubview:glassImageView];
+        }
     }
     return self;
 }
@@ -122,11 +110,12 @@
 {
     _rowFont = [UIFont boldSystemFontOfSize:24.0];
     _rowIndent = 30.0;
+    _rowFontColor = [UIColor whiteColor];
+    _rowHeight = 39.0;
     
     currentRow = 0;
     rowsCount = 0;
     visibleViews = [[NSMutableSet alloc] init];
-    recycledViews = [[NSMutableSet alloc] init];
 }
 
 
@@ -143,15 +132,11 @@
     for (UIView *aView in visibleViews) 
         [aView removeFromSuperview];
     
-    for (UIView *aView in recycledViews)
-        [aView removeFromSuperview];
-    
     visibleViews = [[NSMutableSet alloc] init];
-    recycledViews = [[NSMutableSet alloc] init];
     
     rowsCount = [dataSource numberOfRowsInPickerView:self];
     [contentView setContentOffset:CGPointMake(0.0, 0.0) animated:NO];
-    contentView.contentSize = CGSizeMake(contentView.frame.size.width, 39.0 * rowsCount + 4 * 39.0);    
+    contentView.contentSize = CGSizeMake(contentView.frame.size.width, _rowHeight * rowsCount + 3 * _rowHeight);
     [self tileViews];
 }
 
@@ -161,9 +146,9 @@
 - (void)determineCurrentRow
 {
     CGFloat delta = contentView.contentOffset.y;
-    int position = round(delta / 39.0);
+    int position = round(delta / _rowHeight);
     currentRow = position;
-    [contentView setContentOffset:CGPointMake(0.0, 39.0 * position) animated:YES];
+    [contentView setContentOffset:CGPointMake(0.0, _rowHeight * position) animated:YES];
     [delegate pickerView:self didSelectRow:currentRow];
 }
 
@@ -174,7 +159,7 @@
 {
     UITapGestureRecognizer *tapRecognizer = (UITapGestureRecognizer *)sender;
     CGPoint point = [tapRecognizer locationInView:self];
-    int steps = floor(point.y / 39) - 2;
+    int steps = floor(point.y / _rowHeight) - 2;
     [self makeSteps:steps];
 }
 
@@ -186,7 +171,7 @@
     if (steps == 0 || steps > 2 || steps < -2)
         return;
     
-    [contentView setContentOffset:CGPointMake(0.0, 39.0 * currentRow) animated:NO];
+    [contentView setContentOffset:CGPointMake(0.0, _rowHeight * currentRow) animated:NO];
     
     int newRow = currentRow + steps;
     if (newRow < 0 || newRow >= rowsCount)
@@ -200,7 +185,7 @@
     }
     
     currentRow = currentRow + steps;
-    [contentView setContentOffset:CGPointMake(0.0, 39.0 * currentRow) animated:YES];
+    [contentView setContentOffset:CGPointMake(0.0, _rowHeight * currentRow) animated:YES];
     [delegate pickerView:self didSelectRow:currentRow];
 }
 
@@ -209,15 +194,6 @@
 
 #pragma mark - recycle queue
 
-- (UIView *)dequeueRecycledView
-{
-	UIView *aView = [recycledViews anyObject];
-	
-    if (aView) 
-        [recycledViews removeObject:aView];
-    return aView;
-}
-
 
 
 - (BOOL)isDisplayingViewForIndex:(NSUInteger)index
@@ -225,7 +201,7 @@
 	BOOL foundPage = NO;
     for (UIView *aView in visibleViews) 
 	{
-        int viewIndex = aView.frame.origin.y / 39.0 - 2;
+        int viewIndex = aView.frame.origin.y / _rowHeight - 2;
         if (viewIndex == index) 
 		{
             foundPage = YES;
@@ -240,45 +216,22 @@
 
 - (void)tileViews
 {
-    // Calculate which pages are visible
-    CGRect visibleBounds = contentView.bounds;
-    int firstNeededViewIndex = floorf(CGRectGetMinY(visibleBounds) / 39.0) - 2;
-    int lastNeededViewIndex  = floorf((CGRectGetMaxY(visibleBounds) / 39.0)) - 2;
-    firstNeededViewIndex = MAX(firstNeededViewIndex, 0);
-    lastNeededViewIndex  = MIN(lastNeededViewIndex, rowsCount - 1);
-	
-    // Recycle no-longer-visible pages 
-	for (UIView *aView in visibleViews) 
-    {
-        int viewIndex = aView.frame.origin.y / 39 - 2;
-        if (viewIndex < firstNeededViewIndex || viewIndex > lastNeededViewIndex) 
-        {
-            [recycledViews addObject:aView];
-            [aView removeFromSuperview];
-        }
-    }
-    
-    [visibleViews minusSet:recycledViews];
-    
-    // add missing pages
-	for (int index = firstNeededViewIndex; index <= lastNeededViewIndex; index++) 
+	for (int index = 0; index < rowsCount; index++)
 	{
-        if (![self isDisplayingViewForIndex:index]) 
-		{
-            UILabel *label = (UILabel *)[self dequeueRecycledView];
-            
-			if (label == nil)
-            {
-				label = [[UILabel alloc] initWithFrame:CGRectMake(_rowIndent, 0, self.frame.size.width - _rowIndent, 39.0)];
-                label.backgroundColor = [UIColor clearColor];
-                label.font = self.rowFont;
-                label.textColor = [UIColor colorWithRed:0.0/255.0 green:0.0/255.0 blue:0.0/255.0 alpha:0.75];
-            }
-            
-            [self configureView:label atIndex:index];
-            [contentView addSubview:label];
-            [visibleViews addObject:label];
-        }
+        
+        UILabel *label = [[UILabel alloc] initWithFrame:CGRectMake(_rowIndent, 0, self.frame.size.width - _rowIndent, _rowHeight)];
+        label.backgroundColor = [UIColor clearColor];
+        label.font = self.rowFont;
+        label.textColor = _rowFontColor;
+        label.layer.shadowColor = [label.textColor CGColor];
+        label.layer.shadowOffset = CGSizeMake(0.0, 0.0);
+        label.layer.shadowRadius = 3.0;
+        label.layer.shadowOpacity = 0.5;
+        label.layer.masksToBounds = NO;
+        
+        [self configureView:label atIndex:index];
+        [contentView addSubview:label];
+        [visibleViews addObject:label];
     }
 }
 
@@ -289,8 +242,9 @@
 {
     UILabel *label = (UILabel *)view;
     label.text = [dataSource pickerView:self titleForRow:index];
+    NSLog(label.text);
     CGRect frame = label.frame;
-    frame.origin.y = 39.0 * index + 78.0;
+    frame.origin.y = _rowHeight * index + 78.0;
     label.frame = frame;
 }
 
@@ -301,11 +255,8 @@
 
 - (void)scrollViewDidScroll:(UIScrollView *)scrollView
 {
-    [self tileViews];
+    
 }
-
-
-
 
 - (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate
 {

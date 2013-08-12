@@ -27,7 +27,6 @@
     BOOL isScrollingUp;
     
     // recycling
-    NSMutableSet *recycledViews;
     NSMutableSet *visibleViews;
     
     UIFont *_rowFont;
@@ -38,8 +37,12 @@
 @property (nonatomic, unsafe_unretained) id <AFPickerViewDelegate> delegate;
 @property (nonatomic, unsafe_unretained) int selectedRow;
 @property (nonatomic, strong) UIFont *rowFont;
+@property (nonatomic, strong) UIColor *rowFontColor;
 @property (nonatomic, unsafe_unretained) CGFloat rowIndent;
+@property (nonatomic, unsafe_unretained) CGFloat rowHeight;
 
+
+- (id)initWithFrame:(CGRect)frame backgroundImage:(UIImage *) backgroundImage pickerShadowsImage:(UIImage *) pickerShadows;
 
 - (void)setup;
 - (void)reloadData;
@@ -48,7 +51,6 @@
 - (void)makeSteps:(int)steps;
 
 // recycle queue
-- (UIView *)dequeueRecycledView;
 - (BOOL)isDisplayingViewForIndex:(NSUInteger)index;
 - (void)tileViews;
 - (void)configureView:(UIView *)view atIndex:(NSUInteger)index;
